@@ -1,0 +1,158 @@
+<%#
+ Copyright 2024
+ Licensed under the Apache License, Version 2.0
+-%>
+
+<script type="text/javascript">//<![CDATA[
+	function manualLogin() {
+		var btn = document.getElementById('manual_login_btn');
+		var msgDiv = document.getElementById('login_message');
+		
+		if (!btn || !msgDiv) return;
+		
+		// Show loading state
+		btn.disabled = true;
+		btn.value = '<%:登录中...%>';
+		msgDiv.innerHTML = '<em style="color: blue;"><%:正在发送登录请求...%></em>';
+		
+		XHR.get('<%=url("admin/services/camtools/login")%>', null,
+			function(x, data) {
+				// Restore button state
+				btn.disabled = false;
+				btn.value = '<%:立即登录%>';
+				
+				// Display result message
+				if (data.success) {
+					msgDiv.innerHTML = '<span style="color: green;">✓ ' + data.message + '</span>';
+				} else {
+					msgDiv.innerHTML = '<span style="color: red;">✗ ' + data.message + '</span>';
+				}
+				
+				// Clear message after 5 seconds
+				setTimeout(function() {
+					msgDiv.innerHTML = '';
+				}, 5000);
+			}
+		);
+	}
+	
+	function restartService() {
+		var btn = document.getElementById('restart_service_btn');
+		var msgDiv = document.getElementById('restart_message');
+		
+		if (!btn || !msgDiv) return;
+		
+		// Show loading state
+		btn.disabled = true;
+		btn.value = '<%:重启中...%>';
+		msgDiv.innerHTML = '<em style="color: blue;"><%:正在重启服务...%></em>';
+		
+		XHR.get('<%=url("admin/services/camtools/restart")%>', null,
+			function(x, data) {
+				// Restore button state
+				btn.disabled = false;
+				btn.value = '<%:重启服务%>';
+				
+				// Display result message
+				if (data.success) {
+					msgDiv.innerHTML = '<span style="color: green;">✓ ' + data.message + '</span>';
+				} else {
+					msgDiv.innerHTML = '<span style="color: red;">✗ ' + data.message + '</span>';
+				}
+				
+				// Clear message after 5 seconds
+				setTimeout(function() {
+					msgDiv.innerHTML = '';
+				}, 5000);
+			}
+		);
+	}
+	
+	function startService() {
+		var btn = document.getElementById('start_service_btn');
+		var msgDiv = document.getElementById('start_message');
+		
+		if (!btn || !msgDiv) return;
+		
+		// Show loading state
+		btn.disabled = true;
+		btn.value = '<%:启动中...%>';
+		msgDiv.innerHTML = '<em style="color: blue;"><%:正在启动服务...%></em>';
+		
+		XHR.get('<%=url("admin/services/camtools/start")%>', null,
+			function(x, data) {
+				// Restore button state
+				btn.disabled = false;
+				btn.value = '<%:启动服务%>';
+				
+				// Display result message
+				if (data.success) {
+					msgDiv.innerHTML = '<span style="color: green;">✓ ' + data.message + '</span>';
+				} else {
+					msgDiv.innerHTML = '<span style="color: red;">✗ ' + data.message + '</span>';
+				}
+				
+				// Clear message after 5 seconds
+				setTimeout(function() {
+					msgDiv.innerHTML = '';
+				}, 5000);
+			}
+		);
+	}
+	
+	function stopService() {
+		var btn = document.getElementById('stop_service_btn');
+		var msgDiv = document.getElementById('stop_message');
+		
+		if (!btn || !msgDiv) return;
+		
+		// Show loading state
+		btn.disabled = true;
+		btn.value = '<%:停止中...%>';
+		msgDiv.innerHTML = '<em style="color: blue;"><%:正在停止服务...%></em>';
+		
+		XHR.get('<%=url("admin/services/camtools/stop")%>', null,
+			function(x, data) {
+				// Restore button state
+				btn.disabled = false;
+				btn.value = '<%:停止服务%>';
+				
+				// Display result message
+				if (data.success) {
+					msgDiv.innerHTML = '<span style="color: green;">✓ ' + data.message + '</span>';
+				} else {
+					msgDiv.innerHTML = '<span style="color: red;">✗ ' + data.message + '</span>';
+				}
+				
+				// Clear message after 5 seconds
+				setTimeout(function() {
+					msgDiv.innerHTML = '';
+				}, 5000);
+			}
+		);
+	}
+//]]></script>
+
+<fieldset class="cbi-section">
+	<legend><%:手动操作%></legend>
+	<div class="cbi-section-node">
+		<div class="cbi-value">
+			<label class="cbi-value-title"><%:手动登录%></label>
+			<div class="cbi-value-field">
+				<input type="button" id="manual_login_btn" class="cbi-button cbi-button-apply" value="<%:立即登录%>" onclick="manualLogin()" />
+				<div id="login_message" style="margin-top: 10px;"></div>
+			</div>
+		</div>
+		<div class="cbi-value">
+			<label class="cbi-value-title"><%:服务控制%></label>
+			<div class="cbi-value-field">
+				<input type="button" id="start_service_btn" class="cbi-button cbi-button-positive" value="<%:启动服务%>" onclick="startService()" style="margin-right: 5px;" />
+				<input type="button" id="stop_service_btn" class="cbi-button cbi-button-negative" value="<%:停止服务%>" onclick="stopService()" style="margin-right: 5px;" />
+				<input type="button" id="restart_service_btn" class="cbi-button cbi-button-reload" value="<%:重启服务%>" onclick="restartService()" />
+				<div id="start_message" style="margin-top: 10px;"></div>
+				<div id="stop_message" style="margin-top: 10px;"></div>
+				<div id="restart_message" style="margin-top: 10px;"></div>
+			</div>
+		</div>
+	</div>
+</fieldset>

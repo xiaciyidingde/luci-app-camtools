@@ -1,0 +1,63 @@
+<%#
+ Copyright 2024
+ Licensed under the Apache License, Version 2.0
+-%>
+
+<script type="text/javascript">//<![CDATA[
+	XHR.poll(5, '<%=url("admin/services/camtools/status")%>', null,
+		function(x, data) {
+			var statusDiv = document.getElementById('camtools_status');
+			if (!statusDiv) return;
+			
+			var html = '<table class="table">';
+			
+			// Service enabled status
+			html += '<tr><td width="33%"><%:服务状态%></td><td>';
+			if (data.enabled) {
+				html += '<span style="color:green"><%:已启用%></span>';
+			} else {
+				html += '<span style="color:red"><%:已禁用%></span>';
+			}
+			html += '</td></tr>';
+			
+			// Service running status
+			html += '<tr><td width="33%"><%:运行状态%></td><td>';
+			if (data.service_running) {
+				html += '<span style="color:green"><%:运行中%></span>';
+			} else {
+				html += '<span style="color:red"><%:未运行%></span>';
+			}
+			html += '</td></tr>';
+			
+			// Connection status
+			html += '<tr><td width="33%"><%:连接状态%></td><td>';
+			if (data.connected === '已联网') {
+				html += '<span style="color:green"><%:已联网%></span>';
+			} else if (data.connected === '未联网') {
+				html += '<span style="color:red"><%:未联网%></span>';
+			} else {
+				html += '<span style="color:gray"><%:未知%></span>';
+			}
+			html += '</td></tr>';
+			
+			// Last authentication time
+			html += '<tr><td width="33%"><%:最后认证时间%></td><td>';
+			if (data.last_auth_time && data.last_auth_time !== '') {
+				html += data.last_auth_time;
+			} else {
+				html += '<%:无记录%>';
+			}
+			html += '</td></tr>';
+			
+			html += '</table>';
+			statusDiv.innerHTML = html;
+		}
+	);
+//]]></script>
+
+<fieldset class="cbi-section">
+	<legend><%:运行状态%></legend>
+	<div id="camtools_status">
+		<em><%:正在加载状态信息...%></em>
+	</div>
+</fieldset>

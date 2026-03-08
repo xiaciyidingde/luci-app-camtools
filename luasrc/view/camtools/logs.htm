@@ -1,0 +1,61 @@
+<%#
+ Copyright 2024
+ Licensed under the Apache License, Version 2.0
+-%>
+
+<script type="text/javascript">//<![CDATA[
+	function updateLogs() {
+		XHR.get('<%=url("admin/services/camtools/get_logs")%>', null,
+			function(x, data) {
+				var logsDiv = document.getElementById('camtools_logs');
+				if (!logsDiv) return;
+				
+				if (!data.logs || data.logs.length === 0) {
+					logsDiv.innerHTML = '<em><%:暂无日志记录%></em>';
+					return;
+				}
+				
+				var html = '<div style="max-height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-family: monospace; font-size: 12px;">';
+				
+				for (var i = 0; i < data.logs.length; i++) {
+					var log = data.logs[i];
+					var levelColor = 'black';
+					
+					if (log.level === 'ERROR' || log.level === 'ERR') {
+						levelColor = 'red';
+					} else if (log.level === 'WARNING' || log.level === 'WARN') {
+						levelColor = 'orange';
+					} else if (log.level === 'INFO') {
+						levelColor = 'green';
+					} else if (log.level === 'DEBUG') {
+						levelColor = 'blue';
+					}
+					
+					html += '<div style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px;">';
+					html += '<span style="color: #666;">' + log.timestamp + '</span> ';
+					html += '<span style="color: ' + levelColor + '; font-weight: bold;">[' + log.level + ']</span> ';
+					html += '<span>' + log.message + '</span>';
+					html += '</div>';
+				}
+				
+				html += '</div>';
+				logsDiv.innerHTML = html;
+				
+				var logsContainer = logsDiv.querySelector('div');
+				if (logsContainer) {
+					logsContainer.scrollTop = 0;
+				}
+			}
+		);
+	}
+	
+	updateLogs();
+	setInterval(updateLogs, 5000);
+//]]></script>
+
+<fieldset class="cbi-section">
+	<legend><%:运行日志%> <small>(<%:最近200条，每5秒自动刷新%>)</small></legend>
+	<div id="camtools_logs">
+		<em><%:正在加载日志...%></em>
+	</div>
+</fieldset>
