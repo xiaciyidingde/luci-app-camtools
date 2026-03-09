@@ -76,8 +76,7 @@ function o.validate(self, value, section)
 end
 
 -- Server address field
-o = s:option(Value, "server_address", translate("服务器地址"),
-	translate("校园网认证服务器地址，格式为 IP:端口"))
+o = s:option(Value, "server_address", translate("服务器地址"))
 o.default = "192.168.40.2:801"
 o.placeholder = "192.168.40.2:801"
 o.rmempty = false

@@ -71,21 +71,11 @@ function action_status()
 		connected = "未联网"
 	end
 	
-	local last_auth_time = ""
-	if nixio.fs.access("/var/log/camtools.log") then
-		local log_cmd = "grep '认证' /var/log/camtools.log | tail -n 1 | awk -F'[][]' '{print $2}'"
-		local log_result = sys.exec(log_cmd)
-		if log_result and log_result ~= "" then
-			last_auth_time = log_result:gsub("\n", "")
-		end
-	end
-	
 	http.prepare_content("application/json")
 	http.write_json({
 		enabled = (enabled == "1"),
 		service_running = service_running,
-		connected = connected,
-		last_auth_time = last_auth_time
+		connected = connected
 	})
 end
 

@@ -40,15 +40,6 @@
 			}
 			html += '</td></tr>';
 			
-			// Last authentication time
-			html += '<tr><td width="33%"><%:最后认证时间%></td><td>';
-			if (data.last_auth_time && data.last_auth_time !== '') {
-				html += data.last_auth_time;
-			} else {
-				html += '<%:无记录%>';
-			}
-			html += '</td></tr>';
-			
 			html += '</table>';
 			statusDiv.innerHTML = html;
 		}

@@ -230,7 +230,6 @@ main_loop() {
             fi
             
             if check_connectivity; then
-                log_info "网络连接正常"
                 consecutive_failures=0
             else
                 consecutive_failures=$((consecutive_failures + 1))
