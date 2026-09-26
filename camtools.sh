@@ -13,8 +13,9 @@ STUDENT_ID=""
 PASSWORD=""
 SERVER_ADDRESS="192.168.40.2:801"
 SERVICE_ENABLED="0"
-CHECK_INTERVAL="10"
-PING_TARGET="baidu.com"
+CHECK_INTERVAL="1"
+RELOGIN_INTERVAL="30"
+PING_TARGET="223.5.5.5"
 
 # 日志函数
 log_to_file() {
@@ -69,7 +70,8 @@ load_config() {
     PASSWORD=$(uci get camtools.config.password 2>/dev/null)
     SERVER_ADDRESS=$(uci get camtools.config.server_address 2>/dev/null || echo "192.168.40.2:801")
     SERVICE_ENABLED=$(uci get camtools.config.service_enabled 2>/dev/null || echo "0")
-    CHECK_INTERVAL=$(uci get camtools.config.check_interval 2>/dev/null || echo "10")
+    CHECK_INTERVAL=$(uci get camtools.config.check_interval 2>/dev/null || echo "1")
+    RELOGIN_INTERVAL=$(uci get camtools.config.relogin_interval 2>/dev/null || echo "30")
 }
 
 # 验证配置
@@ -79,11 +81,36 @@ validate_config() {
         return 1
     fi
     
-    if [ "$CHECK_INTERVAL" -lt 5 ]; then
-        log_warning "检测间隔小于5秒，使用默认值10秒"
-        CHECK_INTERVAL=10
+    # 非数字、前导零或小于1秒的间隔一律回到默认值
+    case "$CHECK_INTERVAL" in
+        ''|*[!0-9]*)
+            log_warning "检测间隔无效，使用默认值1秒"
+            CHECK_INTERVAL=1
+            ;;
+    esac
+    if [ "$CHECK_INTERVAL" -lt 1 ]; then
+        log_warning "检测间隔小于1秒，使用默认值1秒"
+        CHECK_INTERVAL=1
     fi
-    
+    # 去掉前导零（"08"→"8"），防止算术运算按八进制解析；POSIX 写法，busybox ash 兼容
+    while [ ${#CHECK_INTERVAL} -gt 1 ] && [ "${CHECK_INTERVAL#0}" != "$CHECK_INTERVAL" ]; do
+        CHECK_INTERVAL="${CHECK_INTERVAL#0}"
+    done
+
+    case "$RELOGIN_INTERVAL" in
+        ''|*[!0-9]*)
+            log_warning "循环登录间隔无效，使用默认值30分钟"
+            RELOGIN_INTERVAL=30
+            ;;
+    esac
+    if [ "$RELOGIN_INTERVAL" -lt 1 ]; then
+        log_warning "循环登录间隔小于1分钟，使用默认值30分钟"
+        RELOGIN_INTERVAL=30
+    fi
+    while [ ${#RELOGIN_INTERVAL} -gt 1 ] && [ "${RELOGIN_INTERVAL#0}" != "$RELOGIN_INTERVAL" ]; do
+        RELOGIN_INTERVAL="${RELOGIN_INTERVAL#0}"
+    done
+
     return 0
 }
 
@@ -123,7 +150,7 @@ urlencode() {
 
 # 检查网络连接
 check_connectivity() {
-    ping -c 2 -W 3 "$PING_TARGET" >/dev/null 2>&1
+    ping -c 2 -W 1 "$PING_TARGET" >/dev/null 2>&1
     return $?
 }
 
@@ -195,12 +222,14 @@ perform_login() {
 # 主循环
 main_loop() {
     log_info "CamTools服务启动"
+    local last_login=0
     
     # 开机后立即尝试登录一次
     load_config
     if [ "$SERVICE_ENABLED" = "1" ] && validate_config; then
         log_info "开机启动，执行登录"
         perform_login
+        last_login=$(date +%s)
     fi
     
     while true; do
@@ -219,31 +248,83 @@ main_loop() {
         fi
         
         # 配置验证通过，开始监控
-        local consecutive_failures=0
+        local fail_count=0
+        local wait_time="$CHECK_INTERVAL"
+        local refresh_every=$((30 / CHECK_INTERVAL))
+        local since_load=0
+        [ $refresh_every -lt 1 ] && refresh_every=1
         
         while true; do
-            # 重新加载配置，检查是否被禁用
-            load_config
+            # 配置缓存：在线约每30秒才刷新一次，避免每轮fork 5个uci进程；失败时立即刷新
+            if [ $since_load -ge $refresh_every ]; then
+                load_config
+                since_load=0
+            fi
+            
             if [ "$SERVICE_ENABLED" != "1" ]; then
                 log_info "服务已被禁用"
                 break
             fi
             
-            if check_connectivity; then
-                consecutive_failures=0
-            else
-                consecutive_failures=$((consecutive_failures + 1))
-                log_warning "网络连接失败 (连续${consecutive_failures}次)"
-                
-                if [ $consecutive_failures -ge 2 ]; then
-                    log_info "检测到断网，触发认证"
-                    if perform_login; then
-                        consecutive_failures=0
-                    fi
+            # 循环保活登录：每隔配置的分钟数无条件登录一次，门户对在线账号只返回"已经在线"
+            local now=$(date +%s)
+            if [ $((now - last_login)) -ge $((RELOGIN_INTERVAL * 60)) ]; then
+                if validate_config; then
+                    log_info "循环登录：执行周期保活登录"
+                    perform_login
                 fi
+                last_login=$now
             fi
             
-            sleep $CHECK_INTERVAL
+            if check_connectivity; then
+                if [ $fail_count -gt 0 ]; then
+                    log_info "网络已恢复"
+                fi
+                fail_count=0
+                since_load=$((since_load + 1))
+                sleep $CHECK_INTERVAL
+                continue
+            fi
+            
+            # 失败时先刷新配置（用户可能刚改了学号或密码）
+            load_config
+            since_load=0
+            
+            if [ "$SERVICE_ENABLED" != "1" ]; then
+                log_info "服务已被禁用"
+                break
+            fi
+            
+            if ! validate_config; then
+                log_error "配置验证失败，等待配置修复..."
+                sleep 30
+                continue
+            fi
+            
+            # 断网立即登录，不做二次确认；门户对在线账号的重复登录只返回"已经在线"，误报无副作用
+            fail_count=$((fail_count + 1))
+            log_warning "网络连接失败 (连续${fail_count}次)，触发认证"
+            perform_login
+            # 失败触发的登录同样计入循环保活的计时，避免紧接着再发一次周期登录
+            last_login=$now
+            
+            # 失败退避：连续5次后改10秒，再5次后固定30秒，网络恢复后自动回到配置间隔
+            if [ $fail_count -ge 10 ]; then
+                wait_time=30
+            elif [ $fail_count -ge 5 ]; then
+                wait_time=10
+            else
+                wait_time=$CHECK_INTERVAL
+            fi
+            [ "$CHECK_INTERVAL" -gt "$wait_time" ] && wait_time=$CHECK_INTERVAL
+            if [ $fail_count -eq 5 ]; then
+                log_warning "连续失败已达5次，检测间隔调整为10秒"
+            elif [ $fail_count -eq 10 ]; then
+                log_warning "连续失败已达10次，检测间隔调整为30秒"
+            fi
+            
+            since_load=$((since_load + 1))
+            sleep $wait_time
         done
         
         sleep 5
@@ -273,6 +354,7 @@ show_status() {
     echo "学号: $STUDENT_ID"
     echo "服务器: $SERVER_ADDRESS"
     echo "检测间隔: ${CHECK_INTERVAL}秒"
+    echo "循环登录间隔: ${RELOGIN_INTERVAL}分钟"
     echo ""
     
     if check_connectivity; then

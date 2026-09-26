@@ -23,6 +23,7 @@ luci-app-camtools 是一个纯Shell脚本实现的OpenWrt/ImmortalWrt插件，�
 
 - ✅ 断网时自动登录
 - ✅ 开机自动登录
+- ✅ 定时循环登录保活（间隔可配置）
 - ✅ LuCI Web界面设置
 - ✅ 实时状态监控
 - ✅ Shell脚本实现
@@ -120,8 +121,11 @@ uci set camtools.config.password='密码'
 # 配置服务器地址
 # uci set camtools.config.server_address='192.168.40.2:801'
 
-# 配置检测间隔（默认10秒，最小5秒）
-# uci set camtools.config.check_interval='10'
+# 配置检测间隔（默认1秒，最小1秒）
+# uci set camtools.config.check_interval='1'
+
+# 配置循环登录间隔（分钟，默认30，最小1）
+# uci set camtools.config.relogin_interval='30'
 
 # 启用服务
 uci set camtools.config.service_enabled='1'
@@ -167,7 +171,8 @@ logread | grep camtools
 | password | 密码（最大64字符） | 空 |
 | server_address | 服务器地址（格式：IP:端口） | 192.168.40.2:801 |
 | service_enabled | 服务启用状态（0=禁用，1=启用） | 0 |
-| check_interval | 网络检测间隔（秒，最小值5） | 10 |
+| check_interval | 网络检测间隔（秒，最小值1） | 1 |
+| relogin_interval | 循环保活登录间隔（分钟，最小值1） | 30 |
 
 
 ## 项目信息

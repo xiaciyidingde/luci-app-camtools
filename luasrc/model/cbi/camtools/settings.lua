@@ -116,18 +116,36 @@ end
 
 -- Check interval field
 o = s:option(Value, "check_interval", translate("检测间隔（秒）"),
-	translate("网络状态检测的时间间隔，最小值为5秒"))
-o.datatype = "min(5)"
-o.default = "10"
-o.placeholder = "10"
+	translate("网络状态检测的时间间隔，最小值为1秒"))
+o.datatype = "min(1)"
+o.default = "1"
+o.placeholder = "1"
 
 function o.validate(self, value, section)
 	local num = tonumber(value)
 	if not num then
 		return nil, translate("检测间隔必须是数字")
 	end
-	if num < 5 then
-		return nil, translate("检测间隔不能小于5秒")
+	if num < 1 then
+		return nil, translate("检测间隔不能小于1秒")
+	end
+	return value
+end
+
+-- Periodic keep-alive re-login interval (minutes)
+o = s:option(Value, "relogin_interval", translate("循环登录间隔（分钟）"),
+	translate("每隔该时间无条件重新登录一次以保活，最小值为1分钟"))
+o.datatype = "min(1)"
+o.default = "30"
+o.placeholder = "30"
+
+function o.validate(self, value, section)
+	local num = tonumber(value)
+	if not num then
+		return nil, translate("循环登录间隔必须是数字")
+	end
+	if num < 1 then
+		return nil, translate("循环登录间隔不能小于1分钟")
 	end
 	return value
 end

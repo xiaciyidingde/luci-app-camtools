@@ -64,7 +64,7 @@ function action_status()
 	end
 	
 	local connected = "unknown"
-	local ping_result = sys.exec("ping -c 1 -W 2 baidu.com >/dev/null 2>&1 && echo 'success' || echo 'failed'")
+	local ping_result = sys.exec("ping -c 2 -W 1 223.5.5.5 >/dev/null 2>&1 && echo 'success' || echo 'failed'")
 	if ping_result:match("success") then
 		connected = "已联网"
 	elseif ping_result:match("failed") then
